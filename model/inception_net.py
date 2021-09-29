@@ -18,11 +18,6 @@ import pytorch_lightning as pl
 import os
 import torchmetrics
 
-from ray import tune
-
-from ray.tune.integration.pytorch_lightning import TuneReportCallback
-
-
 
 
     
@@ -81,15 +76,18 @@ class Googlenet_Classifier(pl.LightningModule):
         }
         return optim[self.optim_name]
 
+    
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
         logits = self.forward(x.float())
-       # print(x,y,logits)
+       # :wqprint(x,y,logits)
         
         y=y.long()
         loss=self.losss(logits,y)
         
         acc = self.accuracy(logits, y)
+        self.logger.experiment.log_metric('train_loss', loss,step=self.global_step)
+        self.logger.experiment.log_metric('train_accuracy', acc, step=self.global_step)
         self.log("train_loss", loss,on_step=True, on_epoch=True,sync_dist=True)
         self.log("train_accuracy", acc,on_step=True, on_epoch=True, sync_dist=True)
         return loss
@@ -102,6 +100,8 @@ class Googlenet_Classifier(pl.LightningModule):
         loss=self.losss(logits,y)
         
         acc = self.accuracy(logits, y)
+        self.logger.experiment.log_metric('test_loss_per_step', loss, step=self.global_step)
+        self.logger.experiment.log_metric('test_accuracy_per_step', acc, step=self.global_step)
         self.log("val_loss_init", loss,on_step=True, on_epoch=True,sync_dist=True)
         self.log("val_accuracy_init", acc,on_step=True, on_epoch=True,sync_dist=True)
         return {"val_loss": loss, "val_accuracy": acc}
@@ -116,6 +116,8 @@ class Googlenet_Classifier(pl.LightningModule):
         avg_acc = torch.stack(
             [x["val_accuracy"] for x in outputs]).mean()
         if self.trainer.is_global_zero:
+            self.logger.experiment.log_metric('test_loss', avg_loss, step=self.current_epoch)
+            self.logger.experiment.log_metric('test_accuracy', avg_acc, step=self.current_epoch)
             self.log("val_loss", avg_loss,rank_zero_only=True)
             self.log("val_accuracy", avg_acc,rank_zero_only=True)
 
