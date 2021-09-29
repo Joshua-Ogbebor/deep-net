@@ -6,8 +6,8 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 import os
 import torchmetrics
-from ray import tune
-from ray.tune.integration.pytorch_lightning import TuneReportCallback
+#from ray import tune
+#from ray.tune.integration.pytorch_lightning import TuneReportCallback
 
 
 
@@ -48,34 +48,36 @@ class Resnet_Classifier(pl.LightningModule):
         #x = torch.log_softmax(x, dim=1)
         return x
 
-    #def configure_optimizers(self):
-        #return torch.optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, dampening=self.damp, weight_decay=self.wghtDcay)
 
-    def training_step(self, train_batch, batch_idx):
+     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
         logits = self.forward(x.float())
-        #loss = F.nll_loss(logits, y)
+       # :wqprint(x,y,logits)
         
         y=y.long()
         loss=self.losss(logits,y)
         
         acc = self.accuracy(logits, y)
-        self.log("train_loss", loss,sync_dist=True)
-        self.log("train_accuracy", acc, sync_dist=True)
+        self.logger.experiment.log_metric('train_loss', loss, step=trainer.global_step)
+        self.logger.experiment.log_metric('train_accuracy', acc, step=trainer.global_step)
+        self.log("train_loss", loss,on_step=True, on_epoch=True,sync_dist=True)
+        self.log("train_accuracy", acc,on_step=True, on_epoch=True, sync_dist=True)
         return loss
 
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch
         logits = self.forward(x.float())
-        #loss = F.nll_loss(logits, y)
+        
         y=y.long()
         loss=self.losss(logits,y)
         
         acc = self.accuracy(logits, y)
-        self.log("val_loss_init", loss, on_step=True, on_epoch=True, sync_dist=True)
-        self.log("val_accuracy_init", acc, on_step=True, on_epoch=True, sync_dist=True)
+        self.logger.experiment.log_metric('test_loss_per_step', loss, step=trainer.global_step)
+        self.logger.experiment.log_metric('test_accuracy_per_step', acc, step=trainer.global_step)
+        self.log("val_loss_init", loss,on_step=True, on_epoch=True,sync_dist=True)
+        self.log("val_accuracy_init", acc,on_step=True, on_epoch=True,sync_dist=True)
         return {"val_loss": loss, "val_accuracy": acc}
-    
+
     def test_step(self, batch, batch_idx):
         # Here we just reuse the validation_step for testing
         return self.validation_step(batch, batch_idx)
@@ -86,14 +88,10 @@ class Resnet_Classifier(pl.LightningModule):
         avg_acc = torch.stack(
             [x["val_accuracy"] for x in outputs]).mean()
         if self.trainer.is_global_zero:
+            self.logger.experiment.log_metric('test_loss', avg_loss, step=trainer.global_step)
+            self.logger.experiment.log_metric('test_accuracy', avg_acc, step=trainer.global_step)
             self.log("val_loss", avg_loss,rank_zero_only=True)
             self.log("val_accuracy", avg_acc,rank_zero_only=True)
-
-         
-
-
-
-
 
 
 
