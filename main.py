@@ -2,17 +2,17 @@ import os, copy, comet_ml
 from comet_ml import Experiment
 from pytorch_lightning.loggers import CometLogger
 from train import fit
-
+import pytorch_lightning as pl
 from ray import tune
-
-experiment_name = "train"
-experiment = Experiment(api_key = "rI52i2RdTWgAjRD8MlZrdAhoS", project_name = "deep-net", parse_args=False)
-experiment.set_name(experiment_name)
 
 #comet_logger=CometLogger(api_key = "rI52i2RdTWgAjRD8MlZrdAhoS", experiment_name = "train",project_name = "deep-net")
 
-def main (num_samples=40, num_epochs=50, folder="Dataset", arch='inc', experiment=Experiment(api_key='dummy_key', disabled=True)):
+def main (num_epochs=50, folder="Dataset", arch='inc', experiment=Experiment(api_key='dummy_key', disabled=True)):
     data_dir = os.path.join(os.getcwd(), folder)
+    experiment_name = arch
+    experiment = Experiment(api_key = "rI52i2RdTWgAjRD8MlZrdAhoS", project_name = "deep-net", parse_args=False)
+    experiment.set_name(experiment_name)
+
     hparams=config_dict(arch)
     experiment.log_parameters(hparams)
     pl.seed_everything(42, workers=True)    
@@ -115,7 +115,7 @@ def config_dict (arch):
     return config #config_
 
 if __name__ == "__main__":
-    main(num_samples=100, num_epochs=35, folder="Dataset_new", arch='alex')
+    main(num_epochs=40, folder="Dataset", arch='res')
     #main(num_samples=100, num_epochs=35, folder="Dataset_new", arch='alex', optim='asha')
     #main(num_samples=40, num_epochs=35, folder="Dataset", arch='alex', opt='pbt')
     #main(num_samples=40, num_epochs=35, folder="Dataset", arch='vgg', opt='pbt')
