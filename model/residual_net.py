@@ -6,10 +6,6 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 import os
 import torchmetrics
-#from ray import tune
-#from ray.tune.integration.pytorch_lightning import TuneReportCallback
-
-
 
 class Resnet_Classifier(pl.LightningModule):
     def __init__(self, config, n_classes=4, data_dir=None, in_channels = 3):
