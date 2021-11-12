@@ -5,47 +5,33 @@ Original : https://pytorch.org/vision/stable/_modules/torchvision/models/alexnet
 """
 import torch
 import torch.nn as nn
-
 from typing import Any
-
-#from functools import partial
-#from collections import OrderedDict
-#from torch.nn import functional as F
-import pytorch_lightning as pl
 import torchmetrics
-
+from .model_tools import deep_net,act_fn_by_name,# classification_metrics,confusion_matrix_t,decoder,sum_and_find_dist
 
 
 __all__ = ['AlexNet', 'alexnet']
 
-act_fn_by_name = {
-    "tanh": nn.Tanh,
-    "relu": nn.ReLU,
-    "leaky_relu": nn.LeakyReLU,
-    "gelu": nn.GELU,
-    "selu": nn.SELU,
-    "linear": nn.Identity
-}
 
-class AlexNet(pl.LightningModule):
+class AlexNet(deep_net):
 
     def __init__(self,
-                 config,
-                 num_classes: int = 4,
+                 lr,mm,dp,wD,opt,actvn,b1,b2,eps,rho,
+                 num_classes: int, **kwargs 
         ) -> None:
         super(AlexNet, self).__init__()
-        self.lr = config["lr"]
-        self.momentum = config["mm"]
-        self.damp = config["dp"]
-        self.wghtDcay = config["wD"]
-        self.optim_name=config["opt"]
-        self.act_fn_name= config["actvn"]
-        self.act_fn=act_fn_by_name[self.act_fn_name]               
-        self.accuracy = torchmetrics.Accuracy()        
+        self.lr=lr
+        self.momentum=mm
+        self.damp=dp
+        self.wghtDcay=wD
+        self.optim_name=opt
+        self.act_fn_name=actvn
+        self.act_fn=act_fn_by_name(self.act_fn_name)
+        self.accuracy = torchmetrics.Accuracy()
         self.losss = nn.CrossEntropyLoss()
-        self.betas=(config["b1"],config["b2"])
-        self.eps=config["eps"]
-        self.rho=config["rho"]
+        self.betas=(b1,b2)
+        self.eps=eps
+        self.rho=rho
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
             self.act_fn(),
@@ -71,61 +57,8 @@ class AlexNet(pl.LightningModule):
             self.act_fn(),
             nn.Linear(4096, num_classes),
         )
-        
-        
-
-    def configure_optimizers(self):
-        optim={
-            'sgd':torch.optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, dampening=self.damp, weight_decay=self.wghtDcay),
-            'adam':torch.optim.Adam(self.parameters(), lr=self.lr, betas=self.betas, eps=self.eps, weight_decay=self.wghtDcay),
-            'adadelta':torch.optim.Adadelta(self.parameters(), lr=self.lr, rho=self.rho, eps=self.eps, weight_decay=self.wghtDcay)
-        }
-        return optim[self.optim_name]
-
-    
-    def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
-        logits = self.forward(x.float())
-       # :wqprint(x,y,logits)
-        
-        y=y.long()
-        loss=self.losss(logits,y)
-        
-        acc = self.accuracy(logits, y)
-        self.logger.experiment.log_metric('train_loss', loss,step=self.global_step)
-        self.logger.experiment.log_metric('train_accuracy', acc, step=self.global_step)
-        self.log("train_loss", loss,on_step=True, on_epoch=True,sync_dist=True)
-        self.log("train_accuracy", acc,on_step=True, on_epoch=True, sync_dist=True)
-        return loss
-
-    def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
-        logits = self.forward(x.float())
-        
-        y=y.long()
-        loss=self.losss(logits,y)
-        
-        acc = self.accuracy(logits, y)
-        self.logger.experiment.log_metric('test_loss_per_step', loss, step=self.global_step)
-        self.logger.experiment.log_metric('test_accuracy_per_step', acc, step=self.global_step)
-        self.log("val_loss_init", loss,on_step=True, on_epoch=True,sync_dist=True)
-        self.log("val_accuracy_init", acc,on_step=True, on_epoch=True,sync_dist=True)
-        return {"val_loss": loss, "val_accuracy": acc}
-
-    def test_step(self, batch, batch_idx):
-        # Here we just reuse the validation_step for testing
-        return self.validation_step(batch, batch_idx)
-
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack(
-            [x["val_loss"] for x in outputs]).mean()
-        avg_acc = torch.stack(
-            [x["val_accuracy"] for x in outputs]).mean()
-        if self.trainer.is_global_zero:
-            self.logger.experiment.log_metric('test_loss', avg_loss, step=self.current_epoch)
-            self.logger.experiment.log_metric('test_accuracy', avg_acc, step=self.current_epoch)
-            self.log("val_loss", avg_loss,rank_zero_only=True)
-            self.log("val_accuracy", avg_acc,rank_zero_only=True)
+        self.num_classes=num_classes
+        self.save_hyperparameters()
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

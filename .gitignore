@@ -1,2 +1,7 @@
 Dataset/
 __pycache__/
+*.tar
+private/
+ckpt/
+test-imgs/
+trained-models/

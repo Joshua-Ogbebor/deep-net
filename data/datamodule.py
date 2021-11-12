@@ -2,6 +2,7 @@ import os
 import random
 import shutil
 from torchvision import datasets, transforms
+#from datasets import ImageFolder
 import torch
 import pytorch_lightning as pl
 from torch.utils.data import random_split, DataLoader
@@ -17,27 +18,37 @@ class ImgData(pl.LightningDataModule):
 		self.num_workers=num_workers
 		self.batch_size=batch_size
 		self.transform = {
+                        'init':transforms.Compose
+                                ([
+                                 #transforms.Resize(size=256),
+                                 #transforms.RandomRotation(degrees=10),
+                                 #transforms.RandomHorizontalFlip(),
+                                 #transforms.RandomVerticalFlip(),
+                                 #transforms.ColorJitter(brightness=0.1, contrast=0.1),
+                                 #transforms.Normalize(self.mean_nums, self.std_nums),   USE IF COMMAND HERE FOR NORMALIZATION
+                                 transforms.ToTensor()
+                                ]),
 			'train': transforms.Compose
 				([
-				 transforms.Resize(size=256),
+				 #transforms.Resize(size=256),
 				 #transforms.RandomRotation(degrees=10),
 				 #transforms.RandomHorizontalFlip(),
 				 #transforms.RandomVerticalFlip(),
-				 transforms.ColorJitter(brightness=0.1, contrast=0.1),
+				 #transforms.ColorJitter(brightness=0.1, contrast=0.1),
 				 #transforms.Normalize(self.mean_nums, self.std_nums),   USE IF COMMAND HERE FOR NORMALIZATION
 				 transforms.ToTensor()     
 				]), 
 			'val': transforms.Compose
 				([
-				 transforms.Resize(256),
+				 #transforms.Resize(256),
 				 #transforms.ColorJitter(brightness=0.1, contrast=0.1),
 				 #transforms.Normalize(self.mean_nums, self.std_nums),                
 				 transforms.ToTensor()
 				]),
 		}
-		#self.train_transforms = self.transform['train']
-		#self.val_transforms = self.transform['val']
-		#self.test_transforms = self.transform['train']
+		#n']
+		#'val']
+		#n']
 
 		_, self.classes = self.dataset()
 		self.num_classes=len(self.classes)
@@ -53,21 +64,23 @@ class ImgData(pl.LightningDataModule):
 		self.data_train, self.data_val, self.data_test = random_split(data_full, [int(round(len(data_full)*0.7)), int(round(len(data_full)*0.2)),int(round(len(data_full)*0.1))])
 
 	def train_dataloader(self):
-		return DataLoader(self.data_train, batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=True)
+		return DataLoader(self.data_train, batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=False)
 
 	def test_dataloater(self):
-		return DataLoader(self.data_test,batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=True )
+		return DataLoader(self.data_test,batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=False)
 
 	def val_dataloader(self):
-		return DataLoader(self.data_val,batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=True)
+		return DataLoader(self.data_val,batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=False)
 
 	def target_to_oh(self, target):
 		one_hot = torch.eye(self.num_classes)[target]
 		return one_hot
 
 	def dataset(self):
-		dataset = ImageFolderNp(root=self.data_dir)
-		#transform= self.transform['train'], target_transform=self.target_to_oh)
+		dataset = datasets.ImageFolder(root=self.data_dir,
+		transform= self.transform['init'], 
+                #target_transform=self.target_to_oh
+                 )
 		return  dataset , dataset.classes
 
 class ImageFolderNp(datasets.ImageFolder):
@@ -85,7 +98,7 @@ class ImageFolderNp(datasets.ImageFolder):
 							#transform=transform,
 							#target_transform=target_transform,
 							#is_valid_file=is_valid_file)
-		self.imgs=np.array(self.imgs)
+		#self.imgs=np.array(self.imgs)
 
 		# override the __getitem__ method. this is the method that dataloader calls
 #	def __getitem__(self, index):

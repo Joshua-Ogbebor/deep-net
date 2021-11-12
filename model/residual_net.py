@@ -3,38 +3,35 @@ import torch.nn as nn
 from functools import partial
 from collections import OrderedDict
 from torch.nn import functional as F
-import pytorch_lightning as pl
 import os
 import torchmetrics
+from .model_tools import deep_net,act_fn_by_name, classification_metrics,confusion_matrix_t,decoder,sum_and_find_dist
 
-class Resnet_Classifier(pl.LightningModule):
-    def __init__(self, config, n_classes=4, data_dir=None, in_channels = 3):
+class Resnet_Classifier(deep_net):
+    def __init__(self,
+             lr, mm, dp, wD, actvn, b1, b2, bloc_1, bloc_2, 
+             bloc_3, bloc_4, depth_1, depth_2, depth_3, depth_4, 
+             eps, rho, opt, n_classes=4, data_dir=None, in_channels = 3, **kwargs):
         super(Resnet_Classifier, self).__init__()
-        
+        self.num_classes=n_classes 
         self.data_dir = data_dir or os.path.join(os.getcwd(), "Dataset") 
-        self.lr = config["lr"]
-        self.momentum = config["mm"]
-        self.damp = config["dp"]
-        self.wghtDcay = config["wD"]
-        self.actvn = config["actvn"]
-        self.block_sizes=[config["bloc_1"],config["bloc_2"],config["bloc_3"],config["bloc_4"]]
-        self.depths=[config["depth_1"],config["depth_2"],config["depth_3"],config["depth_4"]]
+        self.lr = lr
+        self.momentum = mm
+        self.damp = dp
+        self.wghtDcay = wD
+        self.actvn = actvn
+        self.block_sizes=[bloc_1,bloc_2,bloc_3,bloc_4]
+        self.depths=[depth_1,depth_2,depth_3,depth_4]
         self.encoder = ResNetEncoder(in_channels,  blocks_sizes=self.block_sizes, depths=self.depths, activation=self.actvn )
         self.decoder = ResnetDecoder(self.encoder.blocks[-1].blocks[-1].expanded_channels, n_classes)
-        self.betas=(config["b1"],config["b2"])
-        self.eps=config["eps"]
-        self.rho=config["rho"]     
+        self.betas=(b1,b2)
+        self.eps=eps
+        self.rho=rho     
         self.accuracy = torchmetrics.Accuracy()        
         self.losss = nn.CrossEntropyLoss()
-        self.optim_name= config["opt"]
- 
-    def configure_optimizers(self):
-        optim={
-            'sgd':torch.optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, dampening=self.damp, weight_decay=self.wghtDcay),
-            'adam':torch.optim.Adam(self.parameters(), lr=self.lr, betas=self.betas, eps=self.eps, weight_decay=self.wghtDcay),
-            'adadelta':torch.optim.Adadelta(self.parameters(), lr=self.lr, rho=self.rho, eps=self.eps, weight_decay=self.wghtDcay)
-        }
-        return optim[self.optim_name]
+        self.optim_name=opt
+        self.save_hyperparameters() 
+
 
     def forward(self, x):
         #batch_size, channels, width, height = x.size()
@@ -43,52 +40,6 @@ class Resnet_Classifier(pl.LightningModule):
         
         #x = torch.log_softmax(x, dim=1)
         return x
-
-
-    def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
-        logits = self.forward(x.float())
-       # :wqprint(x,y,logits)
-        
-        y=y.long()
-        loss=self.losss(logits,y)
-        
-        acc = self.accuracy(logits, y)
-        self.logger.experiment.log_metric('train_loss', loss,step=self.global_step)
-        self.logger.experiment.log_metric('train_accuracy', acc, step=self.global_step)
-        self.log("train_loss", loss,on_step=True, on_epoch=True,sync_dist=True)
-        self.log("train_accuracy", acc,on_step=True, on_epoch=True, sync_dist=True)
-        return loss
-
-    def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
-        logits = self.forward(x.float())
-        
-        y=y.long()
-        loss=self.losss(logits,y)
-        
-        acc = self.accuracy(logits, y)
-        self.logger.experiment.log_metric('test_loss_per_step', loss, step=self.global_step)
-        self.logger.experiment.log_metric('test_accuracy_per_step', acc, step=self.global_step)
-        self.log("val_loss_init", loss,on_step=True, on_epoch=True,sync_dist=True)
-        self.log("val_accuracy_init", acc,on_step=True, on_epoch=True,sync_dist=True)
-        return {"val_loss": loss, "val_accuracy": acc}
-
-    def test_step(self, batch, batch_idx):
-        # Here we just reuse the validation_step for testing
-        return self.validation_step(batch, batch_idx)
-
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack(
-            [x["val_loss"] for x in outputs]).mean()
-        avg_acc = torch.stack(
-            [x["val_accuracy"] for x in outputs]).mean()
-        if self.trainer.is_global_zero:
-            self.logger.experiment.log_metric('test_loss', avg_loss, step=self.current_epoch)
-            self.logger.experiment.log_metric('test_accuracy', avg_acc, step=self.current_epoch)
-            self.log("val_loss", avg_loss,rank_zero_only=True)
-            self.log("val_accuracy", avg_acc,rank_zero_only=True)
-
 
 
 class Conv2dAuto(nn.Conv2d):
