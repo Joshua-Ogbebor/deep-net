@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from typing import Any
 import torchmetrics
-from .model_tools import deep_net,act_fn_by_name,# classification_metrics,confusion_matrix_t,decoder,sum_and_find_dist
+from .model_tools import deep_net,act_fn_by_name#, classification_metrics,confusion_matrix_t,decoder,sum_and_find_dist
 
 
 __all__ = ['AlexNet', 'alexnet']

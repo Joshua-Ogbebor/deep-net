@@ -38,7 +38,7 @@ def train_fn(model_arch, data_dir=os.path.join(os.getcwd(), "Dataset"),logger=No
    trainer.fit(model, dm)
    save_model(model=model,arch=model_arch,unique_id='full_train')
    model=arch_to_model_ref(model_arch)(**config_s(model_arch),num_classes=dm.num_classes).load_from_checkpoint(checkpoint_path=checkpoint_callback.best_model_path)
-   trainer.test(ckpt_path="best", dataloaders=test_dataloaders)
+   trainer.test(ckpt_path="best",datamodule= dm)
    #save_model(model=model,arch=model_arch,unique_id='full_train')
    
    return  model#arch_to_model_ref(model_arch)(**config_s(model_arch),num_classes=dm.num_classes).load_from_checkpoint(checkpoint_path=checkpoint_callback.best_model_path)#,config,  dm.num_classes)

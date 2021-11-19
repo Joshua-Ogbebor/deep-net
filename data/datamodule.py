@@ -66,7 +66,7 @@ class ImgData(pl.LightningDataModule):
 	def train_dataloader(self):
 		return DataLoader(self.data_train, batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=False)
 
-	def test_dataloater(self):
+	def test_dataloader(self):
 		return DataLoader(self.data_test,batch_size= self.batch_size, num_workers=self.num_workers , pin_memory=False)
 
 	def val_dataloader(self):

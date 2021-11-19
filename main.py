@@ -1,8 +1,9 @@
-import os, comet_ml
+
+import os, comet_ml, cv2
 from pytorch_lightning.loggers import CometLogger
 from train import fit
 import pytorch_lightning as pl
-from funcs import save_model, load_model
+from funcs import save_model, load_model, model_path_er
 from predict import predict
 #from comet_ml import Experiment
 from private.comet_key import key
@@ -17,8 +18,8 @@ def main (num_epochs=50, folder="Dataset", arch='inc'):
         num_epochs=num_epochs,
         logger=comet_logger,
         data_dir = data_dir)
-    save_model(model=model, arch=arch)
-    comet_logger.experiment.log_graph(model)
+    save_model(model=model, arch=arch, unique_id='best_val')
+    comet_logger.experiment.log_model(' '+arch+" Model", model_path_er(arch=arch, unique_id='best_val')[2])
 
     #______________________________test________________________________________
 
@@ -26,13 +27,13 @@ def main (num_epochs=50, folder="Dataset", arch='inc'):
     for image_path in os.listdir(image_folder):
         comet_logger.experiment.log_image(cv2.imread(os.path.join(image_folder,image_path)))
         comet_logger.experiment.log_image(predict.main(input_img_path =os.path.join(image_folder,image_path),base_model=model))
-        comet_logger.experiment.log_image(predict.main(input_img_path =os.path.join(image_folder,image_path),base_model=load_model(arch=arch, unique_id='full_train')))
+        #comet_logger.experiment.log_image(predict.main(input_img_path =os.path.join(image_folder,image_path),base_model=load_model(arch=arch, unique_id='full_train')))
 
 if __name__ == "__main__":
-    main(num_epochs=41, folder="Dataset", arch='alex')
-    #main(num_epochs=50, folder="Dataset", arch='vgg')
+    #main(num_epochs=50, folder="Dataset", arch='alex')
+    #main(num_epochs=40, folder="Dataset", arch='vgg')
     #main(num_epochs=50, folder="Dataset", arch='inc')
-    main(num_epochs=41, folder="Dataset", arch='res')
+    main(num_epochs=50, folder="Dataset", arch='res')
     
 
     

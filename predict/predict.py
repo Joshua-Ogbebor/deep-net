@@ -145,7 +145,7 @@ def transform_img(image:List[List[List[int]]], mode:str='val')->List[List[List[i
 
 
 def global_idx2class()->Dict[int,str]:
-    return {0:'Cracked_asp', 1:'Cracked_con', 2:'Uncracked_asp', 3:'Uncracked_con'}
+    return {0:'Cracked Asphalt', 1:'Cracked Concrete', 2:'Uncracked Ashpalt', 3:'Uncracked Concrete'}
 
 
 def img_from_array(image:List[List[List[int]]])->Image:

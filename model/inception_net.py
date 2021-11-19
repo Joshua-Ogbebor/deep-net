@@ -38,7 +38,7 @@ depth_n_features={
 class Googlenet_Classifier(deep_net):
     def __init__(self,
                lr, mm, dp, wD, opt, actvn, depth, b1, b2, 
-               eps, rho, n_classes=4, data_dir=None, in_channels = 3):
+               eps, rho, n_classes=4, data_dir=None, in_channels = 3,**kwargs):
         super(Googlenet_Classifier, self).__init__()
         
         self.data_dir = data_dir or os.path.join(os.getcwd(), "Dataset") 
@@ -58,7 +58,7 @@ class Googlenet_Classifier(deep_net):
         self.rho=rho
         self._create_network()
         self._init_params()
-        
+        self.save_hyperparameters() 
         
     def _create_network(self):
         # A first convolution on the original image to scale up the channel size
@@ -231,7 +231,7 @@ class Google_custom(nn.Module):
             super().__init__()
             self.hparams = SimpleNamespace(num_classes=num_classes,
                                            act_fn_name=act_fn_name,
-                                           act_fn=act_fn_by_name(act_fn_name)
+                                           act_fn=act_fn_by_name(act_fn_name))
             self.depth=depth
             self._create_network()
             self._init_params()
