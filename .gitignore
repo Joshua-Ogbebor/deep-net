@@ -4,4 +4,6 @@ __pycache__/
 private/
 ckpt/
 test-imgs/
+dep/
+logs/
 trained-models/
