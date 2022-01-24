@@ -7,7 +7,7 @@ from PIL import Image
 from model.residual_net import Resnet_Classifier as res_net
 from model.alex_net import AlexNet as alex_net
 from model.inception_net import Googlenet_Classifier as google_net
-from private.comet_key import key
+
 
 
 class err_out(Exception):

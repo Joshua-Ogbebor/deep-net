@@ -6,12 +6,13 @@ import pytorch_lightning as pl
 from funcs import save_model, load_model, model_path_er
 from predict import predict
 #from comet_ml import Experiment
-from private.comet_key import key
+#from private.comet_key import key
 
 def main (num_epochs=50, folder="Dataset", arch='inc'):
     data_dir = os.path.join(os.getcwd(), folder)
     pl.seed_everything(42, workers=True)    
-    comet_logger=CometLogger(api_key = key(), experiment_name =arch, project_name = "deep-net")
+    #comet_logger=CometLogger(api_key = key(), experiment_name =arch, project_name = "deep-net")
+    comet_logger=CometLogger(save_dir=".",experiment_name =arch, project_name = "deep-net")
     #________________________________train_____________________________________
     model=fit.train_fn(
         model_arch=arch,
